@@ -13,10 +13,13 @@ async function loadPdfJs(): Promise<any> {
     if (loadPromise) return loadPromise;
 
     isLoading = true;
-    // @ts-expect-error - pdfjs-dist/build/pdf.mjs is not a module
-    loadPromise = import("pdfjs-dist/build/pdf.mjs").then((lib) => {
-        // Set the worker source to use local file
-        lib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+    // Dynamically import both pdf.js core and worker from the same version
+    loadPromise = Promise.all([
+        // @ts-ignore - pdfjs-dist types not available
+        import("pdfjs-dist/build/pdf.mjs"),
+        import("pdfjs-dist/build/pdf.worker.min.mjs?url") // Get matching worker URL
+    ]).then(([lib, workerSrc]) => {
+        lib.GlobalWorkerOptions.workerSrc = workerSrc.default;
         pdfjsLib = lib;
         isLoading = false;
         return lib;
